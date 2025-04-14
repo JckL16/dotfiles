@@ -1,9 +1,13 @@
+acpi
 alacritty
+alsa-firmware
 alsa-utils
 code
 curl
 dex
 dmenu
+dosfstools
+e2fsprogs
 feh
 firefox
 fzf
@@ -14,8 +18,11 @@ i3lock
 inetutils
 lxappearance
 ly
+man-db
+man-pages
 neofetch
 networkmanager
+ntfs-3g
 nvim
 pavucontrol
 polybar
@@ -23,6 +30,8 @@ procps-ng
 pulseaudio
 pulseaudio-alsa
 rofi
+sof-firmware
+texinfo
 tldr
 util-linux
 wget
@@ -34,12 +43,3 @@ xorg-xwininfo
 xss-lock
 xterm
 zsh
-e2fsprogs
-dosfstools
-ntfs-3g
-man-db
-man-pages
-texinfo
-acpi
-alsa-firmware
-sof-firmware
