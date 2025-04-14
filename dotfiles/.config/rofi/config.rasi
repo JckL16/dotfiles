@@ -1,0 +1,163 @@
+* {
+    background:             #282A2E;
+    background-alt:         #333333;
+    foreground:             #888888;
+    foreground-alt:         #ffffff;
+    accent:                 #f0C674;
+    urgent:                 #ff5555;
+    selected:               #f0C674;
+    selected-text:          #ffffff;
+    border-color:           #282A2E;
+}
+
+window {
+    background-color: @background;
+    border:           1px;
+    border-color:     @border-color;
+    padding:          5;
+}
+
+mainbox {
+    border:  0;
+    padding: 0;
+}
+
+message {
+    border:       2px 0px 0px;
+    border-color: @border-color;
+    padding:      1px;
+}
+
+textbox {
+    text-color: @foreground;
+}
+
+inputbar {
+    children:   [ prompt,textbox-prompt-colon,entry,case-indicator ];
+    padding:    8px 12px;
+}
+
+textbox-prompt-colon {
+    expand:     false;
+    str:        ":";
+    margin:     0px 0.3em 0em 0em;
+    text-color: @foreground;
+}
+
+entry {
+    text-color: @foreground;
+}
+
+case-indicator {
+    text-color: @foreground;
+}
+
+prompt {
+    text-color: @accent;
+}
+
+listview {
+    fixed-height: 0;
+    border:       2px 0px 0px;
+    border-color: @border-color;
+    spacing:      4px;
+    scrollbar:    true;
+    padding:      4px 0px 0px;
+    lines:        8;
+    columns:      1;
+    cycle:        false;
+    dynamic:      true;
+    layout:       vertical;
+    /* Disable alternating colors */
+    fixed-columns: true;
+}
+
+element {
+    border:  0;
+    padding: 4px 8px;
+}
+
+element-text {
+    text-color: inherit;
+}
+
+element.normal.normal {
+    background-color: @background;
+    text-color:       @foreground;
+}
+
+element.normal.urgent {
+    background-color: @urgent;
+    text-color:       @foreground-alt;
+}
+
+element.normal.active {
+    background-color: @background;
+    text-color:       @foreground;
+}
+
+element.selected.normal {
+    background-color: @accent;
+    text-color:       @selected-text;
+}
+
+element.selected.urgent {
+    background-color: @urgent;
+    text-color:       @foreground-alt;
+}
+
+element.selected.active {
+    background-color: @accent;
+    text-color:       @selected-text;
+}
+
+/* Ensure alternating is disabled */
+element.alternate.normal {
+    background-color: @background;
+    text-color:       @foreground;
+}
+
+element.alternate.urgent {
+    background-color: @urgent;
+    text-color:       @foreground-alt;
+}
+
+element.alternate.active {
+    background-color: @background;
+    text-color:       @foreground;
+}
+
+scrollbar {
+    width:        4px;
+    border:       0;
+    handle-color: @foreground;
+    handle-width: 8px;
+    padding:      0;
+}
+
+mode-switcher {
+    border:       2px 0px 0px;
+    border-color: @border-color;
+}
+
+button {
+    spacing:    0;
+    text-color: @foreground;
+}
+
+button.selected {
+    background-color: @background-alt;
+    text-color:       @accent;
+}
+
+configuration {
+  combi-modi: "drun,run";
+  modi: "combi";
+  matching: "fuzzy";
+  sort: true;
+  sorting-method: "fzf";
+  drun-use-desktop-cache: true;
+  drun-reload-desktop-cache: true;
+  levenshtein-sort: true;
+  case-sensitive: false;
+}
