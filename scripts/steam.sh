@@ -63,42 +63,25 @@ run_command() {
     fi
 }
 
-# Function to enable multilib repository
+# Function to enable multilib support, ensuring no duplicates and checking for active sections
 enable_multilib_repo() {
-    echo -e "\n${BOLD}${BLUE}[0/5] Checking for multilib repository${RESET}"
-
-    if grep -q "^\[multilib\]" /etc/pacman.conf && grep -A 1 "\[multilib\]" /etc/pacman.conf | grep -q "^\s*Include"; then
-        echo -e "${GREEN}✓ Multilib repository already enabled${RESET}"
-        log_message "Multilib repository already enabled" >> "$LOG_FILE"
+    echo -e "\n${BOLD}${BLUE}[0/5] Enabling multilib repository${RESET}"
+    log_message "Starting multilib repository configuration"
+    
+    # Check if the [multilib] section exists and is not commented out
+    if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+        # If it doesn't exist or is commented out, append [multilib] section
+        run_command "echo -e '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist' | sudo tee -a /etc/pacman.conf" "Appending [multilib] section to /etc/pacman.conf" true
     else
-        echo -e "${YELLOW}⚠️  Multilib repository is not enabled.${RESET}"
-        read -p "Do you want to enable it now? [Y/n]: " enable_reply
-        enable_reply=${enable_reply,,}  # to lowercase
-
-        if [[ $enable_reply =~ ^(y|yes|)$ ]]; then
-            sudo sed -i '/#\[multilib\]/s/^#//' /etc/pacman.conf
-            sudo sed -i '/#Include = \/etc\/pacman.d\/mirrorlist/{
-                s/^#//
-                :a
-                n
-                /^\[.*\]/q
-                s/^#//
-                ba
-            }' /etc/pacman.conf
-
-            echo -e "${BLUE}Updating package databases...${RESET}"
-            run_command "sudo pacman -Sy" "Updating package databases" true
-
-            echo -e "${GREEN}✓ Multilib enabled and databases updated${RESET}"
-            log_message "Multilib repository enabled" >> "$LOG_FILE"
-        else
-            echo -e "${RED}Multilib is required for Steam. Exiting.${RESET}"
-            log_message "ERROR: User declined enabling multilib" >> "$LOG_FILE"
-            exit 1
-        fi
+        # If it exists and is active, log a message
+        log_message "Multilib section already enabled in /etc/pacman.conf, skipping append"
     fi
-}
 
+    # Update the package database
+    run_command "sudo pacman -Sy" "Refreshing package database" true
+
+    log_message "Multilib repository enabled successfully (or already enabled)"
+}
 
 # Function to detect the GPU type (AMD, NVIDIA, Intel)
 detect_gpu() {
