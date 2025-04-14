@@ -17,6 +17,8 @@ font pango: JetBrainsMono Nerd Font Mono 10
 
 exec --no-startup-id xsetroot -cursor_name Capitaine
 
+exec_always --no-startup-id setxkbmap se
+
 exec_always --no-startup-id xset -dpms
 exec_always --no-startup-id xset s off
 
