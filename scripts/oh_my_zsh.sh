@@ -74,22 +74,37 @@ run_command "sudo pacman -S --noconfirm zsh git curl fzf" "Installing Zsh, Git, 
 echo -e "\n${BOLD}${BLUE}[2/7] Installing Oh My Zsh${RESET}"
 # Export ZSH variable to prevent install.sh from changing shell automatically
 export RUNZSH=no
-run_command "sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"" "Installing Oh My Zsh" true
+if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+    run_command "sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"" "Installing Oh My Zsh" true
+else
+    echo -e "${YELLOW}⚠️  Oh My Zsh already installed - skipping${RESET}"
+    log_message "Oh My Zsh already installed - skipping"
+fi
 
 # Define ZSH_CUSTOM for plugins (in case it wasn't set by Oh My Zsh installer)
 ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
 
 # Step 3: Install Zsh Autosuggestions
 echo -e "\n${BOLD}${BLUE}[3/7] Installing Zsh Autosuggestions${RESET}"
-run_command "git clone https://github.com/zsh-users/zsh-autosuggestions.git \"$ZSH_CUSTOM/plugins/zsh-autosuggestions\"" "Installing Zsh Autosuggestions" true
+if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]; then
+    run_command "git clone https://github.com/zsh-users/zsh-autosuggestions.git \"$ZSH_CUSTOM/plugins/zsh-autosuggestions\"" "Installing Zsh Autosuggestions" true
+else
+    echo -e "${YELLOW}⚠️  Zsh Autosuggestions already installed - skipping${RESET}"
+    log_message "Zsh Autosuggestions already installed - skipping"
+fi
 
 # Step 4: Install Zsh Syntax Highlighting
 echo -e "\n${BOLD}${BLUE}[4/7] Installing Zsh Syntax Highlighting${RESET}"
-run_command "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git \"$ZSH_CUSTOM/plugins/zsh-syntax-highlighting\"" "Installing Zsh Syntax Highlighting" true
+if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]]; then
+    run_command "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git \"$ZSH_CUSTOM/plugins/zsh-syntax-highlighting\"" "Installing Zsh Syntax Highlighting" true
+else
+    echo -e "${YELLOW}⚠️  Zsh Syntax Highlighting already installed - skipping${RESET}"
+    log_message "Zsh Syntax Highlighting already installed - skipping"
+fi
 
 # Step 5: Install Starship prompt
 echo -e "\n${BOLD}${BLUE}[5/7] Installing Starship prompt${RESET}"
-run_command "curl -fsSL https://starship.rs/install.sh | bash" "Installing Starship" true
+run_command "sh -c \"\$(curl -fsSL https://starship.rs/install.sh)\" -- -y" "Installing Starship" true
 
 # Step 6: Configure Zsh
 echo -e "\n${BOLD}${BLUE}[6/7] Configuring Zsh${RESET}"
@@ -108,7 +123,7 @@ run_command "sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax
 # Step 7: Set Zsh as default shell
 echo -e "\n${BOLD}${BLUE}[7/7] Setting Zsh as default shell${RESET}"
 ZSH_PATH=$(which zsh)
-run_command "chsh -s $ZSH_PATH" "Setting Zsh as default shell" true
+run_command "sudo chsh -s $ZSH_PATH $(whoami)" "Setting Zsh as default shell" true
 
 # Final status
 echo
