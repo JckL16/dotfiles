@@ -65,7 +65,7 @@ run_command() {
 
 # Function to install Flatpak if not already installed
 install_flatpak() {
-    echo -e "\n${BOLD}${BLUE}[1/5] Checking Flatpak installation${RESET}"
+    echo -e "\n${BOLD}${BLUE}[1/6] Checking Flatpak installation${RESET}"
     
     if ! command -v flatpak &> /dev/null; then
         run_command "sudo pacman -S --noconfirm flatpak" "Installing Flatpak" true
@@ -76,21 +76,55 @@ install_flatpak() {
 
 # Function to add the Flathub repository for Steam
 add_flathub_repo() {
-    echo -e "\n${BOLD}${BLUE}[2/5] Adding Flathub repository${RESET}"
+    echo -e "\n${BOLD}${BLUE}[2/6] Adding Flathub repository${RESET}"
     
     run_command "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo" "Adding Flathub repository" true
 }
 
 # Function to install Steam via Flatpak
 install_steam_flatpak() {
-    echo -e "\n${BOLD}${BLUE}[3/5] Installing Steam via Flatpak${RESET}"
+    echo -e "\n${BOLD}${BLUE}[3/6] Installing Steam via Flatpak${RESET}"
     
     run_command "flatpak install --assumeyes flathub com.valvesoftware.Steam" "Installing Steam from Flathub" true
 }
 
+# Function to install Proton GE (Glorious Eggroll)
+install_proton_ge() {
+    echo -e "\n${BOLD}${BLUE}[4/6] Installing Proton GE (Glorious Eggroll)${RESET}"
+    
+    # Create directories for Proton
+    STEAM_DIR="$HOME/.steam/steam"
+    PROTON_GE_DIR="$STEAM_DIR/compatibilitytools.d"
+    
+    run_command "mkdir -p \"$PROTON_GE_DIR\"" "Creating Proton directory" true
+    
+    # Download latest Proton GE release
+    echo -e "\n${BLUE}Downloading latest Proton GE...${RESET}"
+    TEMP_DIR=$(mktemp -d)
+    PROTON_GE_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/latest"
+    
+    # Get the latest release URL
+    LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} "$PROTON_GE_URL")
+    VERSION=$(echo "$LATEST_URL" | grep -oP '(?<=tag/)[^/]+$')
+    DOWNLOAD_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/download/$VERSION/${VERSION}.tar.gz"
+    
+    log_message "Latest Proton GE version: $VERSION" >> "$LOG_FILE"
+    log_message "Download URL: $DOWNLOAD_URL" >> "$LOG_FILE"
+    
+    run_command "curl -L \"$DOWNLOAD_URL\" -o \"$TEMP_DIR/proton-ge.tar.gz\"" "Downloading Proton GE $VERSION" true
+    
+    # Extract to Steam compatibility tools directory
+    run_command "tar -xzf \"$TEMP_DIR/proton-ge.tar.gz\" -C \"$PROTON_GE_DIR\"" "Extracting Proton GE" true
+    
+    # Clean up
+    run_command "rm -rf \"$TEMP_DIR\"" "Cleaning up temporary files" false
+    
+    echo -e "${GREEN}Proton GE $VERSION installed to Steam.${RESET}"
+}
+
 # Function to ensure Flatpak permissions for Steam
 set_flatpak_permissions() {
-    echo -e "\n${BOLD}${BLUE}[4/5] Setting Flatpak permissions for Steam${RESET}"
+    echo -e "\n${BOLD}${BLUE}[5/6] Setting Flatpak permissions for Steam${RESET}"
     
     # Grant necessary access to Steam's Flatpak for devices and sound
     run_command "flatpak override --user --device=dri com.valvesoftware.Steam" "Granting access to video devices" false
@@ -102,7 +136,7 @@ set_flatpak_permissions() {
 
 # Function to run Steam after installation
 run_steam() {
-    echo -e "\n${BOLD}${BLUE}[5/5] Running Steam${RESET}"
+    echo -e "\n${BOLD}${BLUE}[6/6] Running Steam${RESET}"
     
     run_command "flatpak run com.valvesoftware.Steam" "Running Steam" false
 }
@@ -122,10 +156,13 @@ add_flathub_repo
 # Step 3: Install Steam via Flatpak
 install_steam_flatpak
 
-# Step 4: Set Flatpak permissions for Steam
+# Step 4: Install Proton GE
+install_proton_ge
+
+# Step 5: Set Flatpak permissions for Steam
 set_flatpak_permissions
 
-# Step 5: Run Steam
+# Step 6: Run Steam
 run_steam
 
 # Final status
@@ -134,6 +171,7 @@ echo -e "${BOLD}${BLUE}╔══════════════════
 echo -e "${BOLD}${BLUE}║     Installation Complete!           ║${RESET}"
 echo -e "${BOLD}${BLUE}╚══════════════════════════════════════╝${RESET}"
 echo -e "${BLUE}• Steam installed via Flatpak from Flathub${RESET}"
+echo -e "${BLUE}• Proton GE installed for compatibility${RESET}"
 echo -e "${BLUE}• Necessary permissions granted for devices and audio${RESET}"
 echo -e "${BLUE}• Log file available at: ${BOLD}$LOG_FILE${RESET}"
 echo
