@@ -17,9 +17,11 @@ ly
 neofetch
 networkmanager
 nvim
+pavucontrol
 polybar
 procps-ng
 pulseaudio
+pulseaudio-alsa
 rofi
 tldr
 util-linux
@@ -31,7 +33,6 @@ xorg-xset
 xorg-xwininfo
 xss-lock
 xterm
-yay
 zsh
 e2fsprogs
 dosfstools
@@ -39,3 +40,6 @@ ntfs-3g
 man-db
 man-pages
 texinfo
+acpi
+alsa-firmware
+sof-firmware
