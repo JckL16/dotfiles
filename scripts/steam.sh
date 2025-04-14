@@ -3,7 +3,7 @@
 # Script directory and log setup
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
-LOG_FILE="$LOG_DIR/steam-flatpak-install.log"
+LOG_FILE="$LOG_DIR/steam_setup.log"
 
 # ANSI color codes for better formatting
 GREEN="\033[0;32m"
@@ -33,7 +33,7 @@ log_message() {
 run_command() {
     local cmd="$1"
     local desc="$2"
-    local fatal="${3:-false}"  # Whether failure is fatal
+    local fatal="${3:-false}"
     
     echo -ne "${BLUE}$desc... ${RESET}"
     log_message "COMMAND: $cmd" >> "$LOG_FILE"
@@ -63,47 +63,127 @@ run_command() {
     fi
 }
 
-# Function to install Flatpak if not already installed
-install_flatpak() {
-    echo -e "\n${BOLD}${BLUE}[1/6] Checking Flatpak installation${RESET}"
+# Enable multilib repo in pacman.conf
+enable_multilib_repo() {
+    echo -e "\n${BOLD}${BLUE}[0/5] Enabling multilib repository${RESET}"
+    log_message "Starting multilib repository configuration"
     
-    if ! command -v flatpak &> /dev/null; then
-        run_command "sudo pacman -S --noconfirm flatpak" "Installing Flatpak" true
+    # Check if the [multilib] section exists and is not commented out
+    if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+        # If it doesn't exist or is commented out, append [multilib] section
+        run_command "echo -e '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist' | sudo tee -a /etc/pacman.conf" "Appending [multilib] section to /etc/pacman.conf" true
     else
-        echo -e "${GREEN}Flatpak is already installed.${RESET}"
+        log_message "Multilib section already enabled in /etc/pacman.conf, skipping append"
     fi
+
+    # Update the package database
+    run_command "sudo pacman -Sy" "Refreshing package database" true
+
+    log_message "Multilib repository enabled successfully (or already enabled)"
 }
 
-# Function to add the Flathub repository for Steam
-add_flathub_repo() {
-    echo -e "\n${BOLD}${BLUE}[2/6] Adding Flathub repository${RESET}"
+# Detect GPU type (AMD, NVIDIA, Intel)
+detect_gpu() {
+    echo -ne "${BLUE}Detecting GPU... ${RESET}"
     
-    run_command "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo" "Adding Flathub repository" true
-}
-
-# Function to install Steam via Flatpak
-install_steam_flatpak() {
-    echo -e "\n${BOLD}${BLUE}[3/6] Installing Steam via Flatpak${RESET}"
+    GPU_INFO=$(lspci | grep -i "VGA\|3D\|Display" | head -n 1)
+    log_message "GPU Info: $GPU_INFO" >> "$LOG_FILE"
     
-    run_command "flatpak install --assumeyes flathub com.valvesoftware.Steam" "Installing Steam from Flathub" true
+    if [[ $GPU_INFO == *"AMD"* || $GPU_INFO == *"ATI"* ]]; then
+        echo -e "${CYAN}AMD GPU detected${RESET}"
+        GPU="AMD"
+    elif [[ $GPU_INFO == *"NVIDIA"* ]]; then
+        echo -e "${CYAN}NVIDIA GPU detected${RESET}"
+        GPU="NVIDIA"
+    elif [[ $GPU_INFO == *"Intel"* ]]; then
+        echo -e "${CYAN}Intel GPU detected${RESET}"
+        GPU="Intel"
+    else
+        echo -e "${YELLOW}No compatible GPU detected or GPU is unrecognized${RESET}"
+        log_message "WARNING: Unable to detect GPU type" >> "$LOG_FILE"
+        
+        echo -e "\n${YELLOW}Please select your GPU type:${RESET}"
+        echo -e "1) ${CYAN}AMD${RESET}"
+        echo -e "2) ${CYAN}NVIDIA${RESET}"
+        echo -e "3) ${CYAN}Intel${RESET}"
+        echo -e "4) ${RED}Exit installation${RESET}"
+        read -p "Enter your choice (1-4): " gpu_choice
+        
+        case $gpu_choice in
+            1) GPU="AMD" ;;
+            2) GPU="NVIDIA" ;;
+            3) GPU="Intel" ;;
+            4|*) 
+                echo -e "${RED}Installation cancelled by user.${RESET}"
+                exit 0
+                ;;
+        esac
+    fi
+    log_message "Selected GPU type: $GPU" >> "$LOG_FILE"
 }
 
-# Function to install Proton GE (Glorious Eggroll)
+# Install Steam and dependencies based on GPU type
+install_steam_and_dependencies() {
+    echo -e "\n${BOLD}${BLUE}[1/5] Installing Steam${RESET}"
+    
+    # Install Steam through Pacman
+    run_command "sudo pacman -S --noconfirm steam" "Installing Steam" true
+    
+    # Install dependencies based on GPU type
+    case "$GPU" in
+        "AMD")
+            PACKAGES=(
+                "lib32-mesa"
+                "mesa"
+                "lib32-mesa-libgl"
+                "vulkan-radeon"
+                "lib32-vulkan-radeon"
+                "lib32-alsa-lib"
+                "lib32-libpulse"
+                "lib32-opencl-mesa"
+            )
+            ;;
+        "NVIDIA")
+            PACKAGES=(
+                "nvidia"
+                "nvidia-utils"
+                "lib32-nvidia-utils"
+                "lib32-alsa-lib"
+                "lib32-libpulse"
+                "lib32-opencl-nvidia"
+            )
+            ;;
+        "Intel")
+            PACKAGES=(
+                "lib32-mesa"
+                "mesa"
+                "lib32-mesa-libgl"
+                "lib32-alsa-lib"
+                "lib32-libpulse"
+            )
+            ;;
+    esac
+    
+    # Install all dependencies
+    for pkg in "${PACKAGES[@]}"; do
+        run_command "sudo pacman -S --noconfirm $pkg" "Installing $pkg" true
+    done
+}
+
+# Install Proton GE
 install_proton_ge() {
-    echo -e "\n${BOLD}${BLUE}[4/6] Installing Proton GE (Glorious Eggroll)${RESET}"
+    echo -e "\n${BOLD}${BLUE}[2/5] Installing Proton GE (Glorious Eggroll)${RESET}"
     
-    # Create directories for Proton
+    # Create Proton directory under Steam's compatibilitytools.d
     STEAM_DIR="$HOME/.steam/steam"
     PROTON_GE_DIR="$STEAM_DIR/compatibilitytools.d"
+    mkdir -p "$PROTON_GE_DIR"
     
-    run_command "mkdir -p \"$PROTON_GE_DIR\"" "Creating Proton directory" true
-    
-    # Download latest Proton GE release
-    echo -e "\n${BLUE}Downloading latest Proton GE...${RESET}"
+    # Download Proton GE (latest release)
     TEMP_DIR=$(mktemp -d)
     PROTON_GE_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/latest"
     
-    # Get the latest release URL
+    # Get the latest release URL and version
     LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} "$PROTON_GE_URL")
     VERSION=$(echo "$LATEST_URL" | grep -oP '(?<=tag/)[^/]+$')
     DOWNLOAD_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/download/$VERSION/${VERSION}.tar.gz"
@@ -111,9 +191,10 @@ install_proton_ge() {
     log_message "Latest Proton GE version: $VERSION" >> "$LOG_FILE"
     log_message "Download URL: $DOWNLOAD_URL" >> "$LOG_FILE"
     
+    # Download the Proton GE tarball
     run_command "curl -L \"$DOWNLOAD_URL\" -o \"$TEMP_DIR/proton-ge.tar.gz\"" "Downloading Proton GE $VERSION" true
     
-    # Extract to Steam compatibility tools directory
+    # Extract to the Proton directory
     run_command "tar -xzf \"$TEMP_DIR/proton-ge.tar.gz\" -C \"$PROTON_GE_DIR\"" "Extracting Proton GE" true
     
     # Clean up
@@ -122,60 +203,40 @@ install_proton_ge() {
     echo -e "${GREEN}Proton GE $VERSION installed to Steam.${RESET}"
 }
 
-# Function to ensure Flatpak permissions for Steam
-set_flatpak_permissions() {
-    echo -e "\n${BOLD}${BLUE}[5/6] Setting Flatpak permissions for Steam${RESET}"
+# Show setup instructions for Steam
+show_instructions() {
+    echo -e "\n${BOLD}${BLUE}[3/5] Configuring Steam for Proton${RESET}"
     
-    # Grant necessary access to Steam's Flatpak for devices and sound
-    run_command "flatpak override --user --device=dri com.valvesoftware.Steam" "Granting access to video devices" false
-    run_command "flatpak override --user --device=audio com.valvesoftware.Steam" "Granting access to audio devices" false
-    run_command "flatpak override --user --filesystem=home com.valvesoftware.Steam" "Granting access to home directory" false
-    run_command "flatpak override --user --share=network com.valvesoftware.Steam" "Granting network access" false
-    run_command "flatpak override --user --device=all com.valvesoftware.Steam" "Granting access to all devices (for Steam's requirements)" false
+    echo -e "${YELLOW}Follow these steps to configure Steam:${RESET}"
+    echo -e "  ${BOLD}1.${RESET} Launch Steam"
+    echo -e "  ${BOLD}2.${RESET} Go to ${BOLD}Steam${RESET} → ${BOLD}Settings${RESET} → ${BOLD}Steam Play${RESET}"
+    echo -e "  ${BOLD}3.${RESET} Check ${BOLD}\"Enable Steam Play for supported titles\"${RESET}"
+    echo -e "  ${BOLD}4.${RESET} Check ${BOLD}\"Enable Steam Play for all other titles\"${RESET}"
+    echo -e "  ${BOLD}5.${RESET} Select ${BOLD}\"Proton-GE\"${RESET} from the dropdown menu"
+    echo -e "  ${BOLD}6.${RESET} Click ${BOLD}OK${RESET} to save settings"
 }
 
-# Function to run Steam after installation
-run_steam() {
-    echo -e "\n${BOLD}${BLUE}[6/6] Running Steam${RESET}"
-    
-    run_command "flatpak run com.valvesoftware.Steam" "Running Steam" false
-}
-
-# Print header
+# Main script execution
 echo -e "${BOLD}${BLUE}╔══════════════════════════════════════╗${RESET}"
-echo -e "${BOLD}${BLUE}║     Steam Flatpak Installation       ║${RESET}"
+echo -e "${BOLD}${BLUE}║     Steam Gaming Setup Utility       ║${RESET}"
 echo -e "${BOLD}${BLUE}╚══════════════════════════════════════╝${RESET}"
-log_message "Starting Flatpak Steam installation" >> "$LOG_FILE"
 
-# Step 1: Install Flatpak if not installed
-install_flatpak
+# Step 1: Enable multilib repo
+enable_multilib_repo
 
-# Step 2: Add Flathub repository
-add_flathub_repo
+# Step 2: Detect GPU
+detect_gpu
 
-# Step 3: Install Steam via Flatpak
-install_steam_flatpak
+# Step 3: Install Steam and dependencies
+install_steam_and_dependencies
 
-# Step 4: Install Proton GE
+# Step 4: Run Steam to create configuration files
+run_command "steam" "Running Steam to create configuration files" true
+
+# Step 5: Install Proton GE
 install_proton_ge
 
-# Step 5: Set Flatpak permissions for Steam
-set_flatpak_permissions
+# Step 6: Show instructions
+show_instructions
 
-# Step 6: Run Steam
-run_steam
-
-# Final status
-echo
-echo -e "${BOLD}${BLUE}╔══════════════════════════════════════╗${RESET}"
-echo -e "${BOLD}${BLUE}║     Installation Complete!           ║${RESET}"
-echo -e "${BOLD}${BLUE}╚══════════════════════════════════════╝${RESET}"
-echo -e "${BLUE}• Steam installed via Flatpak from Flathub${RESET}"
-echo -e "${BLUE}• Proton GE installed for compatibility${RESET}"
-echo -e "${BLUE}• Necessary permissions granted for devices and audio${RESET}"
-echo -e "${BLUE}• Log file available at: ${BOLD}$LOG_FILE${RESET}"
-echo
-echo -e "${GREEN}${BOLD}Enjoy gaming on Linux!${RESET}"
-echo
-
-log_message "Steam Flatpak installation completed successfully" >> "$LOG_FILE"
+log_message "Steam and Proton GE setup completed successfully"
