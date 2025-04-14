@@ -122,7 +122,7 @@ run_command "sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax
 
 # Step 7: Set Zsh as default shell
 echo -e "\n${BOLD}${BLUE}[7/7] Setting Zsh as default shell${RESET}"
-ZSH_PATH=$(which zsh)
+ZSH_PATH=/bin/zsh
 run_command "sudo chsh -s $ZSH_PATH $(whoami)" "Setting Zsh as default shell" true
 
 # Final status
