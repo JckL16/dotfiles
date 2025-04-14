@@ -63,6 +63,43 @@ run_command() {
     fi
 }
 
+# Function to enable multilib repository
+enable_multilib_repo() {
+    echo -e "\n${BOLD}${BLUE}[0/5] Checking for multilib repository${RESET}"
+
+    if grep -q "^\[multilib\]" /etc/pacman.conf && grep -A 1 "\[multilib\]" /etc/pacman.conf | grep -q "^\s*Include"; then
+        echo -e "${GREEN}✓ Multilib repository already enabled${RESET}"
+        log_message "Multilib repository already enabled" >> "$LOG_FILE"
+    else
+        echo -e "${YELLOW}⚠️  Multilib repository is not enabled.${RESET}"
+        read -p "Do you want to enable it now? [Y/n]: " enable_reply
+        enable_reply=${enable_reply,,}  # to lowercase
+
+        if [[ $enable_reply =~ ^(y|yes|)$ ]]; then
+            sudo sed -i '/#\[multilib\]/s/^#//' /etc/pacman.conf
+            sudo sed -i '/#Include = \/etc\/pacman.d\/mirrorlist/{
+                s/^#//
+                :a
+                n
+                /^\[.*\]/q
+                s/^#//
+                ba
+            }' /etc/pacman.conf
+
+            echo -e "${BLUE}Updating package databases...${RESET}"
+            run_command "sudo pacman -Sy" "Updating package databases" true
+
+            echo -e "${GREEN}✓ Multilib enabled and databases updated${RESET}"
+            log_message "Multilib repository enabled" >> "$LOG_FILE"
+        else
+            echo -e "${RED}Multilib is required for Steam. Exiting.${RESET}"
+            log_message "ERROR: User declined enabling multilib" >> "$LOG_FILE"
+            exit 1
+        fi
+    fi
+}
+
+
 # Function to detect the GPU type (AMD, NVIDIA, Intel)
 detect_gpu() {
     echo -ne "${BLUE}Detecting GPU... ${RESET}"
@@ -243,6 +280,9 @@ echo -e "${BOLD}${BLUE}╔══════════════════
 echo -e "${BOLD}${BLUE}║     Steam Gaming Setup Utility       ║${RESET}"
 echo -e "${BOLD}${BLUE}╚══════════════════════════════════════╝${RESET}"
 log_message "Starting Steam and Proton installation" >> "$LOG_FILE"
+
+# Step 0: Ensure multilib is enabled
+enable_multilib_repo
 
 # Step 1: Detect GPU
 echo -e "\n${BOLD}${BLUE}[1/5] Detecting hardware${RESET}"
