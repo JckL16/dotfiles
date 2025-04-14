@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+IFS=$'\n\t'
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 package_file="$SCRIPT_DIR/packages"
 yay_package_file="$SCRIPT_DIR/yay-packages"
@@ -43,15 +46,14 @@ list_scripts() {
     if [ ! -d "$scripts_dir" ] || [ -z "$(ls -A "$scripts_dir" 2>/dev/null)" ]; then
         echo -e "${YELLOW}No installation scripts found in $scripts_dir${RESET}"
         return
-    }
-    
+    fi
+
     echo -e "${BLUE}The following scripts are available in the scripts directory:${RESET}"
     echo
-    
+
     for script in "$scripts_dir"/*.sh; do
         if [ -f "$script" ]; then
             script_name=$(basename "$script" .sh)
-            # Extract first comment line as description if available
             description=$(head -n 5 "$script" | grep -E "^#[[:space:]]+" | head -n 1 | sed 's/^#[[:space:]]\+//')
             if [ -n "$description" ]; then
                 echo -e "${GREEN}${script_name}${RESET}: $description"
@@ -68,20 +70,18 @@ list_scripts() {
 run_script() {
     local script_name="$1"
     local script_path="$scripts_dir/${script_name}.sh"
-    
+
     if [ ! -f "$script_path" ]; then
         echo -e "${RED}Error: Script '$script_name' not found at $script_path${RESET}"
         return 1
     fi
-    
+
     echo -e "\n${BOLD}${BLUE}=== Running $script_name Script ===${RESET}"
-    
-    # Make the script executable if it's not
+
     if [ ! -x "$script_path" ]; then
         chmod +x "$script_path"
     fi
-    
-    # Execute the script
+
     if "$script_path"; then
         echo -e "${GREEN}✓ Script $script_name completed successfully${RESET}"
         return 0
@@ -91,16 +91,12 @@ run_script() {
     fi
 }
 
-# Process command line arguments
 scripts_to_run=()
 skip_main=false
 
-# Check if no arguments were provided
 if [ $# -eq 0 ]; then
-    # Default behavior: run main installation
     :
 else
-    # Process arguments
     while [ $# -gt 0 ]; do
         case "$1" in
             -h|--help)
@@ -112,7 +108,6 @@ else
                 exit 0
                 ;;
             *)
-                # Treat as script name
                 scripts_to_run+=("$1")
                 ;;
         esac
@@ -120,14 +115,11 @@ else
     done
 fi
 
-# Clear previous log files properly
 find "$log_dir" -type f -delete 2>/dev/null || echo -e "${YELLOW}⚠️  Warning: Could not clear previous log files.${RESET}"
 
-# Count packages
 package_count=$(wc -l < "$package_file" 2>/dev/null || echo 0)
 yay_package_count=$(wc -l < "$yay_package_file" 2>/dev/null || echo 0)
 
-# Print header
 echo -e "${BOLD}${BLUE}=== System Setup Utility ===${RESET}"
 echo -e "${BLUE}Found: ${BOLD}$package_count${RESET}${BLUE} system packages and ${BOLD}$yay_package_count${RESET}${BLUE} AUR packages${RESET}"
 echo -e "${BLUE}Dotfiles source: ${BOLD}$dotfiles_dir${RESET}"
@@ -138,7 +130,6 @@ if [ ${#scripts_to_run[@]} -gt 0 ]; then
 fi
 echo
 
-# Install system packages
 echo -e "${BOLD}${BLUE}[1/4] Installing system packages...${RESET}"
 echo
 
@@ -147,15 +138,11 @@ error_count=0
 
 if [ -f "$package_file" ] && [ -s "$package_file" ]; then
     while IFS= read -r package || [[ -n "$package" ]]; do
-        # Skip empty lines and comments
         [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-        
+
         echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
-        
-        # Log file specific to the package
         package_log="$log_dir/$package.log"
-        
-        # Use sudo for pacman, redirecting output to log
+
         if sudo pacman -S "$package" --noconfirm > "$package_log" 2>&1; then
             echo -e "${GREEN}✓ OK${RESET}"
             ((success_count++))
@@ -173,28 +160,23 @@ echo
 echo -e "${BLUE}System packages: ${GREEN}$success_count successful${RESET}, ${RED}$error_count failed${RESET}"
 echo
 
-# Run the Yay installation script if it exists
 yay_script="$scripts_dir/yay.sh"
 if [ -f "$yay_script" ]; then
     echo -e "${BOLD}${BLUE}[2/4] Setting up Yay AUR helper...${RESET}"
     echo
-    
-    # Check if yay is already installed
+
     if command -v yay &> /dev/null; then
         echo -e "${GREEN}✓ Yay is already installed${RESET}"
     else
-        # Make the script executable if it's not
         if [ ! -x "$yay_script" ]; then
             chmod +x "$yay_script"
         fi
-        
-        # Execute the yay installation script
+
         if "$yay_script"; then
             echo -e "${GREEN}✓ Yay installation completed successfully${RESET}"
         else
             echo -e "${RED}✗ Yay installation failed with exit code $?${RESET}"
             echo -e "${YELLOW}⚠️  Skipping AUR packages installation${RESET}"
-            # Remove yay from scripts_to_run if it was added manually
             for i in "${!scripts_to_run[@]}"; do
                 if [[ "${scripts_to_run[i]}" = "yay" ]]; then
                     unset 'scripts_to_run[i]'
@@ -209,7 +191,6 @@ else
     echo
 fi
 
-# Install yay packages
 echo -e "${BOLD}${BLUE}[3/4] Installing AUR packages with yay...${RESET}"
 echo
 
@@ -221,15 +202,11 @@ if [ -f "$yay_package_file" ] && [ -s "$yay_package_file" ]; then
         echo -e "${YELLOW}⚠️  yay is not installed. Skipping AUR packages.${RESET}"
     else
         while IFS= read -r package || [[ -n "$package" ]]; do
-            # Skip empty lines and comments
             [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-            
+
             echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
-            
-            # Log file specific to the package
             package_log="$log_dir/yay-$package.log"
-            
-            # yay doesn't need sudo
+
             if yay -S "$package" --noconfirm > "$package_log" 2>&1; then
                 echo -e "${GREEN}✓ OK${RESET}"
                 ((yay_success_count++))
@@ -248,7 +225,6 @@ echo
 echo -e "${BLUE}AUR packages: ${GREEN}$yay_success_count successful${RESET}, ${RED}$yay_error_count failed${RESET}"
 echo
 
-# Install dotfiles
 echo -e "${BOLD}${BLUE}[4/4] Setting up dotfiles...${RESET}"
 echo
 
@@ -257,26 +233,19 @@ dotfiles_backup=0
 dotfiles_error=0
 
 if [ -d "$dotfiles_dir" ]; then
-    # Create backup directory if needed
     mkdir -p "$backup_dir"
-    
-    # Find all files in the dotfiles directory (including hidden files)
+
     find "$dotfiles_dir" -type f | while read -r src_file; do
-        # Get the relative path from the dotfiles directory
         rel_path="${src_file#$dotfiles_dir/}"
-        # Calculate destination path in home directory
         dest_file="$HOME/$rel_path"
-        # Create the destination directory if it doesn't exist
         dest_dir=$(dirname "$dest_file")
-        
+
         echo -ne "${BLUE}Processing ${BOLD}$rel_path${RESET}${BLUE}... ${RESET}"
-        
-        # Create parent directory if it doesn't exist
+
         if [ ! -d "$dest_dir" ]; then
             mkdir -p "$dest_dir"
         fi
-        
-        # Backup existing file if it exists and is not a symlink to our dotfile
+
         if [ -f "$dest_file" ] && [ ! -L "$dest_file" -o "$(readlink -f "$dest_file")" != "$(readlink -f "$src_file")" ]; then
             backup_path="$backup_dir/$rel_path"
             backup_dir_path=$(dirname "$backup_path")
@@ -285,8 +254,7 @@ if [ -d "$dotfiles_dir" ]; then
             echo -ne "${YELLOW}(backed up) ${RESET}"
             ((dotfiles_backup++))
         fi
-        
-        # Create symlink
+
         if ln -sf "$src_file" "$dest_file" 2>/dev/null; then
             echo -e "${GREEN}✓ OK${RESET}"
             ((dotfiles_success++))
@@ -299,33 +267,30 @@ else
     echo -e "${YELLOW}⚠️  Dotfiles directory not found at: $dotfiles_dir${RESET}"
 fi
 
-# Run additional requested scripts
 if [ ${#scripts_to_run[@]} -gt 0 ]; then
     echo -e "\n${BOLD}${BLUE}=== Running Additional Scripts ===${RESET}"
     echo
-    
+
     script_success=0
     script_failed=0
-    
+
     for script_name in "${scripts_to_run[@]}"; do
-        # Skip if script is "yay" since we already ran it
         if [ "$script_name" = "yay" ]; then
             echo -e "${YELLOW}Skipping yay.sh as it was already executed${RESET}"
             continue
         fi
-        
+
         if run_script "$script_name"; then
             ((script_success++))
         else
             ((script_failed++))
         fi
     done
-    
+
     echo
     echo -e "${BLUE}Additional scripts: ${GREEN}$script_success successful${RESET}, ${RED}$script_failed failed${RESET}"
 fi
 
-# Final completion message
 echo
 echo -e "${BOLD}${BLUE}=== Installation Summary ===${RESET}"
 echo -e "${BLUE}System packages: ${GREEN}$success_count successful${RESET}, ${RED}$error_count failed${RESET}"
