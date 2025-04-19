@@ -138,21 +138,58 @@ success_count=0
 error_count=0
 
 if [ -f "$package_file" ] && [ -s "$package_file" ]; then
+    # Filter out comments and empty lines
+    packages_to_install=()
     while IFS= read -r package || [[ -n "$package" ]]; do
         [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-
-        echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
-        package_log="$log_dir/$package.log"
-
-        if sudo pacman -S "$package" --noconfirm > "$package_log" 2>&1; then
-            echo -e "${GREEN}✓ OK${RESET}"
-            ((success_count++))
-        else
-            echo -e "${RED}✗ ERROR${RESET}"
-            echo "Installation failed for package $package. See log for details." >> "$package_log"
-            ((error_count++))
-        fi
+        packages_to_install+=("$package")
     done < "$package_file"
+    
+    # Check which packages are already installed
+    echo -e "${BLUE}Checking already installed packages...${RESET}"
+    installed_packages=$(pacman -Qq 2>/dev/null || echo "")
+    
+    # Filter out already installed packages
+    packages_to_install_filtered=()
+    for package in "${packages_to_install[@]}"; do
+        if ! echo "$installed_packages" | grep -q "^${package}$"; then
+            packages_to_install_filtered+=("$package")
+        else
+            echo -e "${GREEN}✓ ${BOLD}$package${RESET}${GREEN} already installed${RESET}"
+            ((success_count++))
+        fi
+    done
+    
+    # Install remaining packages in bulk if any
+    if [ ${#packages_to_install_filtered[@]} -gt 0 ]; then
+        echo -e "${BLUE}Installing ${#packages_to_install_filtered[@]} packages in bulk...${RESET}"
+        package_log="$log_dir/bulk_install.log"
+        
+        if sudo pacman -S --needed --noconfirm "${packages_to_install_filtered[@]}" > "$package_log" 2>&1; then
+            echo -e "${GREEN}✓ Bulk installation successful${RESET}"
+            success_count=$((success_count + ${#packages_to_install_filtered[@]}))
+        else
+            echo -e "${YELLOW}⚠️ Some packages may have failed to install${RESET}"
+            echo -e "${BLUE}Retrying individually for failed packages...${RESET}"
+            
+            # If bulk install failed, try each package individually
+            for package in "${packages_to_install_filtered[@]}"; do
+                echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
+                package_log="$log_dir/$package.log"
+                
+                if sudo pacman -S --needed --noconfirm "$package" > "$package_log" 2>&1; then
+                    echo -e "${GREEN}✓ OK${RESET}"
+                    ((success_count++))
+                else
+                    echo -e "${RED}✗ ERROR${RESET}"
+                    echo "Installation failed for package $package. See log for details." >> "$package_log"
+                    ((error_count++))
+                fi
+            done
+        fi
+    else
+        echo -e "${GREEN}✓ All packages already installed${RESET}"
+    fi
 else
     echo -e "${YELLOW}⚠️  No system packages found to install.${RESET}"
 fi
@@ -202,21 +239,58 @@ if [ -f "$yay_package_file" ] && [ -s "$yay_package_file" ]; then
     if ! command -v yay &> /dev/null; then
         echo -e "${YELLOW}⚠️  yay is not installed. Skipping AUR packages.${RESET}"
     else
+        # Filter out comments and empty lines
+        yay_packages_to_install=()
         while IFS= read -r package || [[ -n "$package" ]]; do
             [[ -z "$package" || "$package" =~ ^[[:space:]]*# ]] && continue
-
-            echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
-            package_log="$log_dir/yay-$package.log"
-
-            if yay -S "$package" --noconfirm > "$package_log" 2>&1; then
-                echo -e "${GREEN}✓ OK${RESET}"
-                ((yay_success_count++))
-            else
-                echo -e "${RED}✗ ERROR${RESET}"
-                echo "Installation failed for package $package. See log for details." >> "$package_log"
-                ((yay_error_count++))
-            fi
+            yay_packages_to_install+=("$package")
         done < "$yay_package_file"
+        
+        # Check which packages are already installed
+        echo -e "${BLUE}Checking already installed AUR packages...${RESET}"
+        installed_packages=$(pacman -Qqm 2>/dev/null || echo "")
+        
+        # Filter out already installed packages
+        yay_packages_to_install_filtered=()
+        for package in "${yay_packages_to_install[@]}"; do
+            if ! echo "$installed_packages" | grep -q "^${package}$"; then
+                yay_packages_to_install_filtered+=("$package")
+            else
+                echo -e "${GREEN}✓ ${BOLD}$package${RESET}${GREEN} already installed${RESET}"
+                ((yay_success_count++))
+            fi
+        done
+        
+        # Install remaining packages in bulk if any
+        if [ ${#yay_packages_to_install_filtered[@]} -gt 0 ]; then
+            echo -e "${BLUE}Installing ${#yay_packages_to_install_filtered[@]} AUR packages in bulk...${RESET}"
+            package_log="$log_dir/bulk_yay_install.log"
+            
+            if yay -S --needed --noconfirm "${yay_packages_to_install_filtered[@]}" > "$package_log" 2>&1; then
+                echo -e "${GREEN}✓ Bulk AUR installation successful${RESET}"
+                yay_success_count=$((yay_success_count + ${#yay_packages_to_install_filtered[@]}))
+            else
+                echo -e "${YELLOW}⚠️ Some AUR packages may have failed to install${RESET}"
+                echo -e "${BLUE}Retrying individually for failed packages...${RESET}"
+                
+                # If bulk install failed, try each package individually
+                for package in "${yay_packages_to_install_filtered[@]}"; do
+                    echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
+                    package_log="$log_dir/yay-$package.log"
+                    
+                    if yay -S --needed --noconfirm "$package" > "$package_log" 2>&1; then
+                        echo -e "${GREEN}✓ OK${RESET}"
+                        ((yay_success_count++))
+                    else
+                        echo -e "${RED}✗ ERROR${RESET}"
+                        echo "Installation failed for package $package. See log for details." >> "$package_log"
+                        ((yay_error_count++))
+                    fi
+                done
+            fi
+        else
+            echo -e "${GREEN}✓ All AUR packages already installed${RESET}"
+        fi
     fi
 else
     echo -e "${YELLOW}⚠️  No AUR packages found to install.${RESET}"
