@@ -1,5 +1,7 @@
 export ZSH="$HOME/.oh-my-zsh"
 
+[ -f ~/.aliases ] && source ~/.aliases
+
 ZSH_THEME=""
 
 plugins=(git zsh-autosuggestions zsh-syntax-highlighting fzf)
