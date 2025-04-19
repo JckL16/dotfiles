@@ -8,6 +8,10 @@ set $mod Mod4
 # is used in the bar {} block below.
 font pango: JetBrainsMono Nerd Font Mono 10
 
+exec_always --no-startup-id picom
+
+exec_always --no-startup-id feh --bg-fill ~/.config/wallpapers/darkside.png
+
 exec --no-startup-id xsetroot -cursor_name Capitaine
 
 exec_always --no-startup-id setxkbmap se
