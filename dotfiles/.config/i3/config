@@ -15,10 +15,6 @@ set $mod Mod4
 # is used in the bar {} block below.
 font pango: JetBrainsMono Nerd Font Mono 10
 
-# Script that connect any monitor connected
-exec_always --no-startup-id ~.config/i3/enable-monitors.sh
-bindsym $mod+p exec --no-startup-id ~.config/i3/enable-monitors.sh
-
 exec --no-startup-id xsetroot -cursor_name Capitaine
 
 exec_always --no-startup-id setxkbmap se
