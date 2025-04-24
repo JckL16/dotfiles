@@ -114,8 +114,16 @@ log_message "Skipped .zshrc modifications – assumed managed via symlinks/dotfi
 
 # Step 7: Set Zsh as default shell
 echo -e "\n${BOLD}${BLUE}[7/7] Setting Zsh as default shell${RESET}"
-ZSH_PATH=$(which zsh)
-run_command "sudo chsh -s $ZSH_PATH $(whoami)" "Setting Zsh as default shell" true
+# Use the full path to zsh instead of relying on which
+ZSH_PATH="/usr/bin/zsh"
+# Verify that this path exists before trying to use it
+if [[ -f "$ZSH_PATH" ]]; then
+    run_command "sudo chsh -s $ZSH_PATH $(whoami)" "Setting Zsh as default shell" true
+else
+    # Fall back to which zsh but run it without sudo to get the user-accessible path
+    ZSH_PATH=$(which zsh)
+    run_command "sudo chsh -s $ZSH_PATH $(whoami)" "Setting Zsh as default shell" true
+fi
 
 # Final status
 echo
