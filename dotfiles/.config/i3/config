@@ -55,6 +55,7 @@ bindsym $mod+Shift+q kill
 # start rofi (a program launcher)
 bindsym $mod+d exec rofi -show combi
 bindsym $mod+Tab exec rofi -show window
+bindsym $mod+Shift+d exec rofi -show sudo
 
 # change focus
 bindsym $mod+h focus left

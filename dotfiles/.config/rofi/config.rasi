@@ -1,3 +1,4 @@
+/* Complete Rofi Configuration with sudo mode */
 * {
     background:             #282A2E;
     background-alt:         #333333;
@@ -151,8 +152,8 @@ button.selected {
 }
 
 configuration {
-  combi-modi: "drun,run";
-  modi: "combi";
+  combi-modi: "drun,run,sudo";
+  modi: "combi,drun,run,window,sudo:~/.config/rofi/scripts/rofi-sudo.sh";
   matching: "fuzzy";
   sort: true;
   sorting-method: "fzf";
