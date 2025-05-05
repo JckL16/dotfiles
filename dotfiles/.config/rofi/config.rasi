@@ -1,14 +1,14 @@
 /* Complete Rofi Configuration with sudo mode */
 * {
-    background:             #282A2E;
-    background-alt:         #333333;
-    foreground:             #888888;
-    foreground-alt:         #ffffff;
-    accent:                 #f0C674;
-    urgent:                 #ff5555;
-    selected:               #f0C674;
-    selected-text:          #ffffff;
-    border-color:           #282A2E;
+    background:             #2E3440;
+    background-alt:         #3B4252;
+    foreground:             #D8DEE9;
+    foreground-alt:         #ECEFF4;
+    accent:                 #88C0D0;
+    urgent:                 #BF616A;
+    selected:               #5E81AC;
+    selected-text:          #ECEFF4;
+    border-color:           #4C566A;
 }
 
 window {
