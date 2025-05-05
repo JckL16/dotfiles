@@ -51,6 +51,7 @@ bindsym $mod+Return exec alacritty
 
 # kill focused window
 bindsym $mod+Shift+q kill
+bindsym --release button2 kill
 
 # start rofi (a program launcher)
 bindsym $mod+d exec rofi -show combi
