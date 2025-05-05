@@ -177,10 +177,13 @@ bindsym $mod+r mode "resize"
 
 exec_always --no-startup-id pkill polybar; polybar main 
 
-# Type                   border   inner   text    urgent
-client.focused          #282A2E  #282A2E #f0C674 #f0C674  
-client.focused_inactive #282A2E  #282A2E #888888 #292d2e 
-client.unfocused        #333333  #282A2E #888888 #292d2e
-client.urgent           #ff5555  #ff5555 #ffffff #8ABEB7
+# Colors (Nord)
+set $bg        #2E3440
+set $inactive  #4C566A
+set $text      #D8DEE9
+set $active    #4C566A
+set $urgent    #BF616A
 
-
+client.focused          $active $active $text
+client.unfocused        $inactive $inactive $text
+client.urgent           $urgent $urgent $text
