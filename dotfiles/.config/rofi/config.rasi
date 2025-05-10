@@ -152,8 +152,8 @@ button.selected {
 }
 
 configuration {
-  combi-modi: "drun,run,sudo";
-  modi: "combi,drun,run,window,sudo:~/.config/rofi/scripts/rofi-sudo.sh";
+  combi-modi: "drun,run";
+  modi: "combi,drun,run,window";
   matching: "fuzzy";
   sort: true;
   sorting-method: "fzf";
