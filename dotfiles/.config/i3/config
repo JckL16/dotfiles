@@ -53,6 +53,14 @@ bindsym $mod+Return exec alacritty
 bindsym $mod+Shift+q kill
 bindsym --release button2 kill
 
+# Disable title bars for all windows
+new_window pixel 1
+new_float  pixel 1
+
+# Gaps between windows
+gaps inner 2
+gaps outer 0
+
 # start rofi (a program launcher)
 bindsym $mod+d exec rofi -show combi
 bindsym $mod+Tab exec rofi -show window
