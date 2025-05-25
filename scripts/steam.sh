@@ -65,7 +65,7 @@ run_command() {
 
 # Enable multilib repo in pacman.conf
 enable_multilib_repo() {
-    echo -e "\n${BOLD}${BLUE}[0/5] Enabling multilib repository${RESET}"
+    echo -e "\n${BOLD}${BLUE}[0/6] Enabling multilib repository${RESET}"
     log_message "Starting multilib repository configuration"
     
     # Check if the [multilib] section exists and is not commented out
@@ -124,7 +124,7 @@ detect_gpu() {
 
 # Install Steam and dependencies based on GPU type
 install_steam_and_dependencies() {
-    echo -e "\n${BOLD}${BLUE}[1/5] Installing Steam${RESET}"
+    echo -e "\n${BOLD}${BLUE}[1/6] Installing Steam${RESET}"
     
     # Install Steam through Pacman
     run_command "sudo pacman -S --noconfirm steam" "Installing Steam" true
@@ -170,13 +170,96 @@ install_steam_and_dependencies() {
     done
 }
 
+# Create Steam directories without running Steam
+create_steam_directories() {
+    echo -e "\n${BOLD}${BLUE}[2/6] Creating Steam directories${RESET}"
+    
+    STEAM_DIR="$HOME/.steam"
+    STEAM_ROOT="$HOME/.local/share/Steam"
+    
+    # Create necessary Steam directories
+    run_command "mkdir -p \"$STEAM_DIR/steam\"" "Creating .steam directory" false
+    run_command "mkdir -p \"$STEAM_ROOT\"" "Creating Steam root directory" false
+    run_command "mkdir -p \"$STEAM_DIR/steam/compatibilitytools.d\"" "Creating compatibilitytools.d directory" false
+    
+    # Create symlink if it doesn't exist
+    if [ ! -L "$STEAM_DIR/steam" ] || [ "$(readlink "$STEAM_DIR/steam")" != "$STEAM_ROOT" ]; then
+        run_command "ln -sf \"$STEAM_ROOT\" \"$STEAM_DIR/steam\"" "Creating Steam directory symlink" false
+    fi
+    
+    log_message "Steam directories created without launching Steam"
+}
+
+# Alternative method: Run Steam briefly to initialize
+initialize_steam_briefly() {
+    echo -e "\n${BOLD}${BLUE}[2/6] Initializing Steam configuration${RESET}"
+    
+    # Check if we're in a display environment
+    if [[ -z "$DISPLAY" && -z "$WAYLAND_DISPLAY" ]]; then
+        echo -e "${YELLOW}No display detected. Creating Steam directories manually...${RESET}"
+        create_steam_directories
+        return 0
+    fi
+    
+    echo -e "${BLUE}Starting Steam briefly to create configuration files...${RESET}"
+    log_message "Starting Steam initialization process"
+    
+    # Start Steam in the background and get its PID
+    steam > /dev/null 2>&1 &
+    STEAM_PID=$!
+    
+    echo -e "${BLUE}Steam started (PID: $STEAM_PID). Waiting for initialization...${RESET}"
+    
+    # Wait for Steam directories to be created (max 30 seconds)
+    local timeout=30
+    local elapsed=0
+    
+    while [ $elapsed -lt $timeout ]; do
+        if [ -d "$HOME/.steam/steam" ] && [ -d "$HOME/.steam/steam/compatibilitytools.d" ]; then
+            echo -e "${GREEN}✓ Steam directories created${RESET}"
+            break
+        fi
+        sleep 1
+        ((elapsed++))
+        echo -ne "${BLUE}Waiting for Steam initialization... ${elapsed}s${RESET}\r"
+    done
+    
+    echo # New line after the progress indicator
+    
+    # Kill Steam process
+    if kill -0 $STEAM_PID 2>/dev/null; then
+        echo -e "${BLUE}Closing Steam...${RESET}"
+        kill $STEAM_PID 2>/dev/null
+        
+        # Wait a bit for graceful shutdown
+        sleep 2
+        
+        # Force kill if still running
+        if kill -0 $STEAM_PID 2>/dev/null; then
+            echo -e "${YELLOW}Force closing Steam...${RESET}"
+            kill -9 $STEAM_PID 2>/dev/null
+        fi
+        
+        echo -e "${GREEN}✓ Steam closed${RESET}"
+        log_message "Steam process terminated successfully"
+    else
+        echo -e "${YELLOW}Steam process already terminated${RESET}"
+        log_message "Steam process was already terminated"
+    fi
+    
+    # Verify directories were created
+    if [ ! -d "$HOME/.steam/steam/compatibilitytools.d" ]; then
+        echo -e "${YELLOW}Steam directories not found, creating manually...${RESET}"
+        create_steam_directories
+    fi
+}
+
 # Install Proton GE
 install_proton_ge() {
-    echo -e "\n${BOLD}${BLUE}[2/5] Installing Proton GE (Glorious Eggroll)${RESET}"
+    echo -e "\n${BOLD}${BLUE}[3/6] Installing Proton GE (Glorious Eggroll)${RESET}"
     
-    # Create Proton directory under Steam's compatibilitytools.d
-    STEAM_DIR="$HOME/.steam/steam"
-    PROTON_GE_DIR="$STEAM_DIR/compatibilitytools.d"
+    # Ensure compatibility tools directory exists
+    PROTON_GE_DIR="$HOME/.steam/steam/compatibilitytools.d"
     mkdir -p "$PROTON_GE_DIR"
     
     # Download Proton GE (latest release)
@@ -205,7 +288,7 @@ install_proton_ge() {
 
 # Show setup instructions for Steam
 show_instructions() {
-    echo -e "\n${BOLD}${BLUE}[3/5] Configuring Steam for Proton${RESET}"
+    echo -e "\n${BOLD}${BLUE}[4/6] Steam Configuration Instructions${RESET}"
     
     echo -e "${YELLOW}Follow these steps to configure Steam:${RESET}"
     echo -e "  ${BOLD}1.${RESET} Launch Steam"
@@ -230,8 +313,8 @@ detect_gpu
 # Step 3: Install Steam and dependencies
 install_steam_and_dependencies
 
-# Step 4: Run Steam to create configuration files
-run_command "steam" "Running Steam to create configuration files" true
+# Step 4: Initialize Steam (briefly) or create directories manually
+initialize_steam_briefly
 
 # Step 5: Install Proton GE
 install_proton_ge
@@ -239,4 +322,17 @@ install_proton_ge
 # Step 6: Show instructions
 show_instructions
 
+echo -e "\n${BOLD}${BLUE}[5/6] Setup Summary${RESET}"
+echo -e "${GREEN}✓ Multilib repository enabled${RESET}"
+echo -e "${GREEN}✓ $GPU GPU drivers and libraries installed${RESET}"
+echo -e "${GREEN}✓ Steam installed${RESET}"
+echo -e "${GREEN}✓ Steam directories initialized${RESET}"
+echo -e "${GREEN}✓ Proton GE installed${RESET}"
+
+echo -e "\n${BOLD}${BLUE}[6/6] Final Notes${RESET}"
+echo -e "${BLUE}• Steam is ready to use${RESET}"
+echo -e "${BLUE}• Proton GE is available in Steam settings${RESET}"
+echo -e "${BLUE}• Log file: ${BOLD}$LOG_FILE${RESET}"
+
 log_message "Steam and Proton GE setup completed successfully"
+echo -e "\n${GREEN}${BOLD}Steam gaming setup complete!${RESET}"
