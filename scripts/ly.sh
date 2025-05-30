@@ -69,42 +69,22 @@ log_message "Starting LY Display Manager setup"
 echo -e "\n${BOLD}${BLUE}[1/2] Installing LY Display Manager${RESET}"
 run_command "sudo pacman -S ly --noconfirm" "Installing LY Display Manager" true
 
-# Step 2: Configure services (but don't start immediately)
+# Step 2: Configure services (but don't start)
 echo -e "\n${BOLD}${BLUE}[2/2] Configuring LY service${RESET}"
 run_command "sudo systemctl enable ly" "Enabling LY service to start on boot" true
-
-# Check if we're in a desktop environment and warn about starting LY
-if [[ -n "$DISPLAY" ]] || [[ -n "$WAYLAND_DISPLAY" ]] || [[ "$XDG_SESSION_TYPE" == "x11" ]] || [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
-    echo -e "\n${YELLOW}${BOLD}Warning:${RESET} ${YELLOW}Detected running desktop environment.${RESET}"
-    echo -e "${YELLOW}LY service will be enabled but NOT started to avoid interrupting your current session.${RESET}"
-    echo -e "${YELLOW}LY will automatically start on next boot or you can start it manually with:${RESET}"
-    echo -e "${BLUE}  sudo systemctl start ly${RESET}"
-    log_message "Skipped starting LY service - desktop environment detected"
-else
-    # Only start LY if we're not in a desktop environment
-    echo -e "\n${BLUE}No desktop environment detected, starting LY service...${RESET}"
-    run_command "sudo systemctl start ly" "Starting LY service" false
-fi
 
 # Final status
 echo
 echo -e "${BOLD}${BLUE}=== Setup Complete ===${RESET}"
 echo -e "${BLUE}• LY Display Manager installed${RESET}"
 echo -e "${BLUE}• LY service enabled for boot${RESET}"
-if [[ -n "$DISPLAY" ]] || [[ -n "$WAYLAND_DISPLAY" ]] || [[ "$XDG_SESSION_TYPE" == "x11" ]] || [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
-    echo -e "${YELLOW}• LY service NOT started (desktop environment active)${RESET}"
-else
-    echo -e "${BLUE}• LY service started${RESET}"
-fi
+echo -e "${YELLOW}• LY service NOT started (will start on next boot)${RESET}"
 echo -e "${BLUE}• Log file available at: ${BOLD}$LOG_FILE${RESET}"
 echo
 
 echo -e "${GREEN}${BOLD}LY has been successfully installed and configured!${RESET}"
-if [[ -n "$DISPLAY" ]] || [[ -n "$WAYLAND_DISPLAY" ]] || [[ "$XDG_SESSION_TYPE" == "x11" ]] || [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
-    echo -e "${YELLOW}LY will start automatically on next boot. Current session preserved.${RESET}"
-else
-    echo -e "${YELLOW}Note: You may need to reboot for changes to take effect.${RESET}"
-fi
+echo -e "${YELLOW}LY will start automatically on next boot. Current session preserved.${RESET}"
+echo -e "${BLUE}To manually start LY later, use: ${BOLD}sudo systemctl start ly${RESET}"
 echo
 
 log_message "LY Display Manager setup completed successfully"
