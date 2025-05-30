@@ -3,6 +3,7 @@ alacritty
 alsa-firmware
 alsa-utils
 arandr
+ca-certificates
 code
 curl
 dex
@@ -22,7 +23,6 @@ lxappearance
 ly
 man-db
 man-pages
-neofetch
 networkmanager
 ntfs-3g
 nvim
