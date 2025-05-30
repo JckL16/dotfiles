@@ -266,7 +266,8 @@ if [ -f "$yay_package_file" ] && [ -s "$yay_package_file" ]; then
             echo -e "${BLUE}Installing ${#yay_packages_to_install_filtered[@]} AUR packages in bulk...${RESET}"
             package_log="$log_dir/bulk_yay_install.log"
             
-            if yay -S --needed --noconfirm "${yay_packages_to_install_filtered[@]}" > "$package_log" 2>&1; then
+            # Updated yay command with flags to handle conflicts automatically
+            if yay -S --needed --noconfirm --removemake --cleanafter --answerdiff=None --answerclean=None --answerupgrade=None "${yay_packages_to_install_filtered[@]}" > "$package_log" 2>&1; then
                 echo -e "${GREEN}✓ Bulk AUR installation successful${RESET}"
                 yay_success_count=$((yay_success_count + ${#yay_packages_to_install_filtered[@]}))
             else
@@ -278,7 +279,8 @@ if [ -f "$yay_package_file" ] && [ -s "$yay_package_file" ]; then
                     echo -ne "${BLUE}Installing ${BOLD}$package${RESET}${BLUE}... ${RESET}"
                     package_log="$log_dir/yay-$package.log"
                     
-                    if yay -S --needed --noconfirm "$package" > "$package_log" 2>&1; then
+                    # Updated individual yay command with the same flags
+                    if yay -S --needed --noconfirm --removemake --cleanafter --answerdiff=None --answerclean=None --answerupgrade=None "$package" > "$package_log" 2>&1; then
                         echo -e "${GREEN}✓ OK${RESET}"
                         ((yay_success_count++))
                     else
