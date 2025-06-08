@@ -24,6 +24,10 @@ ly
 man-db
 man-pages
 networkmanager
+noto-fonts
+noto-fonts-cjk
+noto-fonts-emoji
+noto-fonts-extra
 ntfs-3g
 nvim
 pavucontrol
@@ -36,6 +40,10 @@ rofi
 sof-firmware
 texinfo
 tldr
+ttf-dejavu
+ttf-font-awesome
+ttf-jetbrains-mono-nerd
+ttf-liberation
 util-linux
 wget
 xorg-server
