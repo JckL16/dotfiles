@@ -1,0 +1,47 @@
+[global]
+    monitor = 0
+    font = JetBrainsMono Nerd Font 10
+    corner_radius = 5
+    frame_width = 2
+    frame_color = "#88C0D0"
+    separator_height = 2
+    separator_color = "#4C566A"
+    padding = 16
+    horizontal_padding = 16
+    origin = top-right
+    offset = (5, 35)
+    width = 300
+    height = (0, 300)
+    timeout = 5000
+    ignore_newline = no
+    word_wrap = yes
+    ellipsize = middle
+    transparency = 0
+    background = "#2E3440"
+    foreground = "#D8DEE9"
+    highlight = "#88C0D0"
+    icon_position = off
+    mouse_left_click = close_current
+    mouse_right_click = close_all
+    format = "<b>%s</b>\n%b"
+
+[urgency_low]
+    background = "#2E3440"
+    foreground = "#D8DEE9"
+    frame_color = "#4C566A"
+    timeout = 3000
+    format = " <b>%s</b>\n%b"
+
+[urgency_normal]
+    background = "#2E3440"
+    foreground = "#D8DEE9"
+    frame_color = "#88C0D0"
+    timeout = 6000
+    format = "󰂚 <b>%s</b>\n%b"
+
+[urgency_critical]
+    background = "#2E3440"
+    foreground = "#D8DEE9"
+    frame_color = "#BF616A"
+    timeout = 0
+    format = " <b>%s</b>\n%b"
